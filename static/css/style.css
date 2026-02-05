@@ -1,0 +1,473 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 游戏容器 */
+.game-container {
+    width: 90vw;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 90vh;
+}
+
+/* 游戏头部 */
+.game-header {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.game-header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+.room-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.room-info span {
+    font-weight: bold;
+}
+
+/* 游戏内容区域 */
+.game-content {
+    padding: 20px;
+    display: flex;
+    flex: 1;
+    gap: 20px;
+}
+
+/* 玩家信息面板 */
+.players-panel {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    margin: 15px 0;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.player-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+    position: relative;
+}
+
+.black-stone {
+    background: radial-gradient(circle at 30% 30%, #555, #000);
+    box-shadow: inset 2px 2px 5px rgba(255,255,255,0.3);
+}
+
+.white-stone {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid #ccc;
+}
+
+.player-details h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.player-status {
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.player-status.black {
+    background: #e9ecef;
+    color: #212529;
+}
+
+.player-status.white {
+    background: #f8f9fa;
+    color: #212529;
+    border: 1px solid #dee2e6;
+}
+
+.vs-divider {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4b6cb7;
+    margin: 20px 0;
+}
+
+/* 游戏状态信息 */
+.game-status {
+    background: #e9f7ef;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.status-item {
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.status-label {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.status-value {
+    color: #3498db;
+    font-weight: bold;
+}
+
+/* 左侧面板 */
+.left-panel {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 右侧面板 */
+.right-panel {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 中央棋盘区域 */
+.center-panel {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 500px;
+}
+
+/* 棋盘容器 - 居中显示 */
+.board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #d6b78c;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    width: 100%;
+    height: 100%;
+    max-width: 600px;
+    max-height: 600px;
+}
+
+/* 完美正方形棋盘 - 使用固定尺寸确保精确网格 */
+.board {
+    position: relative;
+    width: 540px; /* 15格 × 36px = 540px */
+    height: 540px; /* 15格 × 36px = 540px */
+    background: #d6b78c;
+    border: 3px solid #8b4513;
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: content-box;
+}
+
+/* 网格线容器 */
+.board-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* 垂直网格线 - 精确分布在0-14格之间，36px间隔 */
+.board-grid .vertical-line {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background-color: #000;
+    transform: translateX(-1px); /* 确保2px宽的线条居中于坐标线上 */
+}
+
+/* 水平网格线 - 精确分布在0-14格之间，36px间隔 */
+.board-grid .horizontal-line {
+    position: absolute;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background-color: #000;
+    transform: translateY(-1px); /* 确保2px高的线条居中于坐标线上 */
+}
+
+/* 棋子位置 - 精确落在交叉点上，使用固定36px网格 */
+.stone {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%); /* 确保棋子中心与网格交叉点对齐 */
+    z-index: 2;
+    cursor: default;
+    border: 1px solid rgba(0,0,0,0.2);
+    box-sizing: border-box;
+}
+
+.stone.black {
+    background: radial-gradient(circle at 30% 30%, #555, #000);
+    box-shadow: inset 2px 2px 5px rgba(255,255,255,0.3);
+}
+
+.stone.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid #ccc;
+}
+
+/* 棋盘点击区域 - 精确覆盖交叉点，使用固定36px网格 */
+.board-cell {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    z-index: 1;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    border: 1px dashed transparent; /* 添加虚线边框辅助调试，不影响视觉 */
+}
+
+.board-cell:hover {
+    opacity: 0.3;
+    background: rgba(255, 255, 0, 0.6);
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+}
+
+/* 控制面板 */
+.controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+/* 最近步骤 */
+.recent-moves {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.recent-moves h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    border-bottom: 2px solid #4b6cb7;
+    padding-bottom: 10px;
+}
+
+.move-item {
+    padding: 8px;
+    margin: 5px 0;
+    background: white;
+    border-radius: 5px;
+    font-size: 14px;
+    border-left: 3px solid #4b6cb7;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    font-size: 14px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* 弹窗样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+    margin: 0 0 20px 0;
+    color: #333;
+}
+
+.rules-content {
+    text-align: left;
+    margin: 20px 0;
+}
+
+.rules-content ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.rules-content li {
+    margin: 5px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .game-content {
+        grid-template-columns: 1fr;
+        grid-gap: 20px;
+    }
+    
+    .board-container {
+        padding: 20px;
+    }
+    
+    .board {
+        width: 420px; /* 15格 × 28px = 420px */
+        height: 420px;
+    }
+    
+    .stone {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .board-cell {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .game-header h1 {
+        font-size: 1.5em;
+    }
+    
+    .game-content {
+        padding: 20px;
+    }
+    
+    .board-container {
+        padding: 15px;
+    }
+    
+    .board {
+        width: 360px; /* 15格 × 24px = 360px */
+        height: 360px;
+    }
+    
+    .stone {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .board-cell {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .player-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .player-avatar {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋对战平台 - 大厅</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🎯 五子棋对战平台</h1>
+            <div class="room-info">
+                <span>欢迎来到五子棋对战平台</span>
+            </div>
+        </div>
+        
+        <div class="game-content">
+            <!-- 创建房间区域 -->
+            <div class="players-panel">
+                <div class="panel-section">
+                    <h2>🎮 创建新房间</h2>
+                    <p>创建一个新的游戏房间，邀请朋友加入对战</p>
+                    <button class="btn btn-primary" onclick="createRoom()">创建房间</button>
+                </div>
+                
+                <div class="panel-section">
+                    <h2>👥 加入现有房间</h2>
+                    <p>输入朋友提供的8位房间代码加入对战</p>
+                    <div style="margin: 15px 0;">
+                        <input type="text" id="room-code-input" placeholder="请输入8位房间代码" 
+                               style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                    </div>
+                    <button class="btn btn-secondary" onclick="joinRoom()">加入房间</button>
+                </div>
+            </div>
+            
+            <!-- 当前房间列表 -->
+            <div class="players-panel">
+                <div class="panel-section">
+                    <h2>📋 当前房间列表</h2>
+                    <p>房间列表功能开发中...</p>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px;">
+                        <p><strong>提示：</strong>您可以创建房间后直接进入游戏，或等待朋友加入。</p>
+                        <p><strong>使用方法：</strong></p>
+                        <ul style="padding-left: 20px; margin-top: 10px;">
+                            <li>点击"创建房间"生成房间代码</li>
+                            <li>将房间代码分享给朋友</li>
+                            <li>朋友在"加入现有房间"中输入代码</li>
+                            <li>开始对战！</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function createRoom() {
+            try {
+                const response = await fetch('/api/create_room', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.room_id) {
+                    window.location.href = `/game/${data.room_id}`;
+                } else {
+                    alert('创建房间失败：' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Error creating room:', error);
+                alert('网络错误，请重试');
+            }
+        }
+        
+        async function joinRoom() {
+            const roomCode = document.getElementById('room-code-input').value.trim();
+            
+            if (!roomCode) {
+                alert('请输入房间代码');
+                return;
+            }
+            
+            if (roomCode.length !== 8) {
+                alert('房间代码必须是8位字符');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/join_room/${roomCode}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = `/game/${roomCode}`;
+                } else {
+                    alert('加入房间失败：' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Error joining room:', error);
+                alert('网络错误，请重试');
+            }
+        }
+        
+        // 回车键触发加入房间
+        document.getElementById('room-code-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋对战</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🎯 五子棋对战平台</h1>
+            <div class="room-info">
+                <span>房间号: {{ room_id }}</span>
+                <button class="btn btn-secondary" onclick="leaveRoom()">离开房间</button>
+            </div>
+        </div>
+        
+        <div class="game-content">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <!-- 玩家信息面板 -->
+                <div class="players-panel">
+                    <div class="player-info" id="player1">
+                        <div class="player-avatar black-stone"></div>
+                        <div class="player-details">
+                            <h3 id="player1-name">等待玩家...</h3>
+                            <div class="player-status" id="player1-status">未准备</div>
+                        </div>
+                    </div>
+                    
+                    <div class="vs-divider">VS</div>
+                    
+                    <div class="player-info" id="player2">
+                        <div class="player-avatar white-stone"></div>
+                        <div class="player-details">
+                            <h3 id="player2-name">等待玩家...</h3>
+                            <div class="player-status" id="player2-status">未准备</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 游戏状态信息 -->
+                <div class="game-status">
+                    <div class="status-item">
+                        <span class="status-label">当前回合:</span>
+                        <span class="status-value" id="current-player">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">游戏状态:</span>
+                        <span class="status-value" id="game-status">等待开始</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中央棋盘区域 -->
+            <div class="center-panel">
+                <div class="board-container">
+                    <div class="board" id="game-board">
+                        <div class="board-grid"></div>
+                        <!-- 棋子将通过JavaScript动态添加 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <!-- 游戏控制面板 -->
+                <div class="controls-panel">
+                    <button class="btn btn-primary" id="restart-btn" onclick="restartGame()" disabled>重新开始</button>
+                    <button class="btn btn-warning" onclick="showRules()">游戏规则</button>
+                </div>
+                
+                <!-- 最近步骤显示 -->
+                <div class="recent-moves">
+                    <h3>最近步骤</h3>
+                    <div id="moves-list">
+                        <p>游戏尚未开始</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 获胜弹窗 -->
+    <div class="modal" id="win-modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="win-message">游戏结束</h2>
+            <button class="btn btn-primary" onclick="closeWinModal()">确定</button>
+        </div>
+    </div>
+    
+    <!-- 规则弹窗 -->
+    <div class="modal" id="rules-modal" style="display: none;">
+        <div class="modal-content">
+            <h2>游戏规则</h2>
+            <div class="rules-content">
+                <p><strong>目标：</strong>在15×15的棋盘上，率先连成五子（横、竖、斜）的一方获胜。</p>
+                <p><strong>规则：</strong></p>
+                <ul>
+                    <li>黑子先行</li>
+                    <li>轮流下棋，每次只能下一枚棋子</li>
+                    <li>棋子下在交叉点上</li>
+                    <li>最先连成五个同色棋子者获胜</li>
+                    <li>可以横、竖、斜连成五子</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary" onclick="closeRulesModal()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        const roomId = "{{ room_id }}";
+        let gameState = null;
+        let myPlayerId = null;
+        let myColor = null;
+        let gameInterval = null;
+        let boardElement = null;
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            boardElement = document.getElementById('game-board');
+            initializeBoard();
+            startGameStatePolling();
+        });
+        
+        // 初始化棋盘 - 创建点击区域和网格（使用固定36px网格）
+        function initializeBoard() {
+            const board = boardElement;
+            board.innerHTML = '<div class="board-grid"></div>';
+            
+            // 固定网格尺寸：15×15，每格36px
+            const cellSize = 36;
+            const boardGrid = board.querySelector('.board-grid');
+            
+            // 创建网格线 - 16条垂直线 and 16条水平线 (15格需要16条线)
+            for (let i = 0; i <= 15; i++) {
+                // 垂直网格线
+                const verticalLine = document.createElement('div');
+                verticalLine.className = 'vertical-line';
+                verticalLine.style.left = `${i * cellSize}px`;
+                verticalLine.style.top = '0';
+                verticalLine.style.height = '100%';
+                boardGrid.appendChild(verticalLine);
+                
+                // 水平网格线
+                const horizontalLine = document.createElement('div');
+                horizontalLine.className = 'horizontal-line';
+                horizontalLine.style.top = `${i * cellSize}px`;
+                horizontalLine.style.left = '0';
+                horizontalLine.style.width = '100%';
+                boardGrid.appendChild(horizontalLine);
+            }
+            
+            // 创建15x15的点击区域 - 精确对应交叉点
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    // 计算交叉点的精确位置（从棋盘左上角开始，边距18px）
+                    const left = 18 + (col * cellSize);
+                    const top = 18 + (row * cellSize);
+                    
+                    cell.style.left = `${left}px`;
+                    cell.style.top = `${top}px`;
+                    cell.addEventListener('click', () => makeMove(row, col));
+                    board.appendChild(cell);
+                }
+            }
+        }
+        
+        // 下棋
+        async function makeMove(row, col) {
+            if (!gameState || gameState.game_status !== 'playing') {
+                showMessage('游戏尚未开始或已结束');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/make_move/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ row: row, col: col })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateGameState(data.game_state);
+                    showMessage(data.message);
+                } else {
+                    showMessage(data.message || '下棋失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('网络错误，请重试');
+            }
+        }
+        
+        // 开始轮询游戏状态
+        function startGameStatePolling() {
+            gameInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/game_state/${roomId}`);
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        updateGameState(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch game state:', error);
+                }
+            }, 1000); // 每秒更新一次
+        }
+        
+        // 更新游戏状态显示
+        function updateGameState(state) {
+            gameState = state;
+            
+            // 更新棋盘
+            updateBoard(state.board);
+            
+            // 更新玩家信息
+            updatePlayersInfo(state.players);
+            
+            // 更新游戏状态
+            document.getElementById('game-status').textContent = 
+                state.game_status === 'waiting' ? '等待玩家' :
+                state.game_status === 'playing' ? '进行中' : '已结束';
+            
+            // 更新当前玩家
+            const currentPlayer = state.current_player === 1 ? '黑子' : '白子';
+            document.getElementById('current-player').textContent = currentPlayer;
+            
+            // 更新最近步骤
+            updateRecentMoves(state.move_history);
+            
+            // 检查游戏结果
+            if (state.game_status === 'finished') {
+                showWinner(state.winner);
+                document.getElementById('restart-btn').disabled = false;
+            }
+        }
+        
+        // 更新棋盘显示
+        function updateBoard(board) {
+            const boardElement = document.getElementById('game-board');
+            
+            // 移除所有现有棋子
+            const existingStones = boardElement.querySelectorAll('.stone');
+            existingStones.forEach(stone => stone.remove());
+            
+            // 固定网格尺寸：15×15，每格36px
+            const cellSize = 36;
+            
+            // 添加新的棋子 - 精确放在交叉点上
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const value = board[row][col];
+                    if (value !== 0) {
+                        const stone = document.createElement('div');
+                        stone.className = `stone ${value === 1 ? 'black' : 'white'}`;
+                        
+                        // 计算交叉点的精确坐标（从棋盘左上角开始，边距18px）
+                        const left = 18 + (col * cellSize);
+                        const top = 18 + (row * cellSize);
+                        
+                        stone.style.left = `${left}px`;
+                        stone.style.top = `${top}px`;
+                        
+                        boardElement.appendChild(stone);
+                    }
+                }
+            }
+        }
+        
+        // 更新玩家信息
+        function updatePlayersInfo(players) {
+            const playerEntries = Object.entries(players);
+            
+            // 更新玩家1（黑子）
+            if (playerEntries[0]) {
+                const [playerId, playerData] = playerEntries[0];
+                document.getElementById('player1-name').textContent = playerData.name;
+                document.getElementById('player1-status').textContent = 
+                    playerData.color === 1 ? '黑子' : '白子';
+                document.getElementById('player1-status').className = 
+                    `player-status ${playerData.color === 1 ? 'black' : 'white'}`;
+            }
+            
+            // 更新玩家2（白子）
+            if (playerEntries[1]) {
+                const [playerId, playerData] = playerEntries[1];
+                document.getElementById('player2-name').textContent = playerData.name;
+                document.getElementById('player2-status').textContent = 
+                    playerData.color === 2 ? '白子' : '黑子';
+                document.getElementById('player2-status').className = 
+                    `player-status ${playerData.color === 2 ? 'white' : 'black'}`;
+            }
+        }
+        
+        // 更新最近步骤
+        function updateRecentMoves(moves) {
+            const movesList = document.getElementById('moves-list');
+            
+            if (moves.length === 0) {
+                movesList.innerHTML = '<p>暂无步骤记录</p>';
+                return;
+            }
+            
+            movesList.innerHTML = moves.map(move => {
+                const color = move.player === 1 ? '黑子' : '白子';
+                const time = new Date(move.timestamp).toLocaleTimeString();
+                return `<div class="move-item">${color}: (${move.row+1}, ${move.col+1}) - ${time}</div>`;
+            }).join('');
+        }
+        
+        // 显示获胜信息
+        function showWinner(winner) {
+            const winnerText = winner === 1 ? '🎉 黑子获胜！' : '🎉 白子获胜！';
+            document.getElementById('win-message').textContent = winnerText;
+            document.getElementById('win-modal').style.display = 'block';
+        }
+        
+        // 关闭获胜弹窗
+        function closeWinModal() {
+            document.getElementById('win-modal').style.display = 'none';
+        }
+        
+        // 显示游戏规则
+        function showRules() {
+            document.getElementById('rules-modal').style.display = 'block';
+        }
+        
+        // 关闭规则弹窗
+        function closeRulesModal() {
+            document.getElementById('rules-modal').style.display = 'none';
+        }
+        
+        // 离开房间
+        async function leaveRoom() {
+            if (confirm('确定要离开房间吗？')) {
+                try {
+                    await fetch(`/api/leave_room/${roomId}`, {
+                        method: 'POST'
+                    });
+                    clearInterval(gameInterval);
+                    window.location.href = '/';
+                } catch (error) {
+                    console.error('Error leaving room:', error);
+                }
+            }
+        }
+        
+        // 重新开始游戏
+        async function restartGame() {
+            if (!gameState || gameState.game_status !== 'finished') {
+                showMessage('只有游戏结束后才能重新开始');
+                return;
+            }
+            
+            if (confirm('确定要重新开始游戏吗？这将清空当前游戏进度。')) {
+                try {
+                    // 发送重新开始请求到后端
+                    const response = await fetch(`/api/restart_game/${roomId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            // 重置本地状态
+                            gameState = data.game_state;
+                            updateGameState(gameState);
+                            document.getElementById('restart-btn').disabled = true;
+                            showMessage('游戏已重新开始！');
+                        } else {
+                            showMessage('重新开始失败：' + (data.message || '未知错误'));
+                        }
+                    } else {
+                        showMessage('重新开始失败：服务器错误');
+                    }
+                } catch (error) {
+                    console.error('Error restarting game:', error);
+                    showMessage('网络错误，请重试');
+                }
+            }
+        }
+        
+        // 显示消息
+        function showMessage(message) {
+            // 使用更友好的提示方式
+            alert(message);
+        }
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', function() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+        });
+        
+        // 窗口大小改变时重新初始化棋盘
+        window.addEventListener('resize', function() {
+            if (boardElement) {
+                // 清除现有的点击区域
+                const cells = boardElement.querySelectorAll('.board-cell');
+                cells.forEach(cell => cell.remove());
+                
+                // 重新创建点击区域和网格线
+                setTimeout(() => {
+                    initializeBoard();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
